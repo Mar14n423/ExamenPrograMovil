@@ -14,5 +14,5 @@ data class DollarEntity(
     @ColumnInfo(name = "paralelo_compra") val dollarParaleloCompra: String? = null,
     @ColumnInfo(name = "paralelo_venta") val dollarParaleloVenta: String? = null,
 
-    @ColumnInfo(name = "timestamp") val timestamp: Long = System.currentTimeMillis()
+    @ColumnInfo(name = "timestamp") val timestamp: Long
 )

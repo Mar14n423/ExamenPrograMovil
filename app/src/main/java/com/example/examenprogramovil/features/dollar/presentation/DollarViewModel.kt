@@ -10,25 +10,48 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class DollarViewModel(val fetchDollarUseCase: FetchDollarUseCase): ViewModel() {
+class DollarViewModel(
+    private val fetchDollarUseCase: FetchDollarUseCase
+) : ViewModel() {
+
     sealed class DollarUIState {
         object Loading : DollarUIState()
-        class Error(val message: String) : DollarUIState()
-        class Success(val data: DollarModel) : DollarUIState()
-    }
-
-    init {
-        getDollar()
+        data class Error(val message: String) : DollarUIState()
+        data class Success(val data: DollarModel) : DollarUIState()
     }
 
     private val _uiState = MutableStateFlow<DollarUIState>(DollarUIState.Loading)
     val uiState: StateFlow<DollarUIState> = _uiState.asStateFlow()
 
+    init {
+        // Inserta un valor inicial en la BD al abrir la app
+        saveInitialDollar()
+        // Carga el último valor de la BD
+        getDollar()
+    }
 
     fun getDollar() {
         viewModelScope.launch(Dispatchers.IO) {
-            fetchDollarUseCase.invoke().collect {
-                    data -> _uiState.value = DollarUIState.Success(data) }
+            try {
+                fetchDollarUseCase.execute().collect { data ->
+                    _uiState.value = DollarUIState.Success(data)
+                }
+            } catch (e: Exception) {
+                _uiState.value = DollarUIState.Error(e.message ?: "Error desconocido")
+            }
+        }
+    }
+
+    fun saveInitialDollar() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val dummy = DollarModel(
+                dollarOficialCompra = "6.90",
+                dollarOficialVenta = "6.95",
+                dollarParaleloCompra = "7.00",
+                dollarParaleloVenta = "7.10",
+                timestamp = System.currentTimeMillis()
+            )
+            fetchDollarUseCase.save(dummy)
         }
     }
 }

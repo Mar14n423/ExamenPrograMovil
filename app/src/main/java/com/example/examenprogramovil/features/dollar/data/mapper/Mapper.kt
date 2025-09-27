@@ -19,6 +19,6 @@ fun DollarModel.toEntity(): DollarEntity {
         dollarOficialVenta = dollarOficialVenta,
         dollarParaleloCompra = dollarParaleloCompra,
         dollarParaleloVenta = dollarParaleloVenta,
-        timestamp = System.currentTimeMillis()
+        timestamp = timestamp
     )
 }

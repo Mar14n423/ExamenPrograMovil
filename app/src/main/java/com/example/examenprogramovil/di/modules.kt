@@ -1,6 +1,6 @@
 package com.example.examenprogramovil.di
 
-import com.example.examenprogramovil.features.dollar.data.datasource.RealTimeRemoteDataSource
+import com.example.examenprogramovil.features.dollar.data.database.AppDatabase
 import com.example.examenprogramovil.features.dollar.data.repository.DollarRepository
 import com.example.examenprogramovil.features.dollar.domain.repository.IDollarRepository
 import com.example.examenprogramovil.features.dollar.domain.usecases.FetchDollarUseCase
@@ -29,7 +29,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
-val appModule = module() {
+val appModule = module {
     // OkHttpClient
     single {
         OkHttpClient.Builder()
@@ -48,7 +48,7 @@ val appModule = module() {
             .build()
     }
 
-    single(named("movies")){
+    single(named("movies")) {
         Retrofit.Builder()
             .baseUrl("https://api.themoviedb.org/3/")
             .client(get())
@@ -56,30 +56,24 @@ val appModule = module() {
             .build()
     }
 
-    // GithubService
+    // Github
     single<GithubService> {
         get<Retrofit>(named("github")).create(GithubService::class.java)
     }
-    single{ GithubRemoteDataSource(get()) }
-    single< IgithubRepository>{ GithubRepository(get()) }
-
+    single { GithubRemoteDataSource(get()) }
+    single<IgithubRepository> { GithubRepository(get()) }
     factory { FindByNickNameUseCase(get()) }
     viewModel { GirhubViewModel(get()) }
-
-
     // Profile
     //single<IProfileRepository> { ProfileRepository() }
     //factory { GetProfileUseCase(get()) }
     //viewModel { ProfileViewModel(get()) }
-
-
-    //Login
-    viewModel{ LogInViewModel(get()) }
+    // Login
+    viewModel { LogInViewModel(get()) }
     factory { LoginUseCase(get()) }
     single<ILoginRepository> { LoginRepository() }
 
-
-    //Movies
+    // Movies
     single<MovieService> {
         get<Retrofit>(named("movies")).create(MovieService::class.java)
     }
@@ -88,12 +82,10 @@ val appModule = module() {
     factory { GetMoviesUseCase(get()) }
     viewModel { MoviesViewModel(get()) }
 
-
-    //Dollar
-    single{
-        RealTimeRemoteDataSource()
-    }
+    // Dollar (Room database + repository + usecase + viewmodel)
+    single { AppDatabase.getDatabase(get()) }
+    single { get<AppDatabase>().dollarDao() }
     single<IDollarRepository> { DollarRepository(get()) }
     factory { FetchDollarUseCase(get()) }
-    viewModel{ DollarViewModel(get()) }
+    viewModel { DollarViewModel(get()) }
 }

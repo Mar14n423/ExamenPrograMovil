@@ -4,5 +4,6 @@ import com.example.examenprogramovil.features.dollar.domain.model.DollarModel
 import kotlinx.coroutines.flow.Flow
 
 interface IDollarRepository {
-    suspend fun getDollar(): Flow<DollarModel>
+    fun getDollar(): Flow<DollarModel>
+    suspend fun saveDollar(dollar: DollarModel)
 }

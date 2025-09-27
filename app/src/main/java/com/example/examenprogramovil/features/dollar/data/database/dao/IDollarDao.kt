@@ -5,12 +5,13 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.example.examenprogramovil.features.dollar.data.database.entity.DollarEntity
+import kotlinx.coroutines.flow.Flow
 
 @Dao
-interface DollarDao {
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insert(dollar: DollarEntity)
+interface IDollarDao {
+    @Query("SELECT * FROM dollars ORDER BY timestamp DESC LIMIT 1")
+    fun getLastDollar(): Flow<DollarEntity?>
 
-    @Query("SELECT * FROM dollars ORDER BY timestamp DESC")
-    suspend fun getAll(): List<DollarEntity>
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertDollar(dollar: DollarEntity)
 }
