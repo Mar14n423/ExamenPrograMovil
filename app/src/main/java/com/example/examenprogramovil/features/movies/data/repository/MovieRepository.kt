@@ -1,26 +1,46 @@
 package com.example.examenprogramovil.features.movies.data.repository
 
-import com.example.examenprogramovil.features.movies.data.datasource.MovieRemoteDataSource
+import com.example.examenprogramovil.features.movies.data.datasource.MovieLocalDataSource
 import com.example.examenprogramovil.features.movies.domain.model.MovieModel
 import com.example.examenprogramovil.features.movies.domain.repository.IMovieRepository
+import com.example.examenprogramovil.features.movies.data.datasource.MoviesRemoteDataSource
 
-class MovieRepository(val remoteDatasource: MovieRemoteDataSource): IMovieRepository {
-    override suspend fun getMovies(): Result<List<MovieModel>> {
-        val response = remoteDatasource.getMovies()
+private const val TMDB_IMAGE_BASE_W185 = "https://image.tmdb.org/t/p/w185"
 
-        return response.fold(
-            onSuccess = { pageDto ->
-                val movies = pageDto.results.map {
+class MoviesRepository(
+    private val remote: MoviesRemoteDataSource,
+    private val local: MovieLocalDataSource
+) : IMovieRepository {
+
+    override suspend fun getPopular(page: Int): Result<List<MovieModel>> {
+        val response = remote.getPopularMovies(page)
+
+        response.fold(
+            onSuccess = { page ->
+                var dtos = page.results
+                var models = dtos.map { dto ->
                     MovieModel(
-                        title = it.title,
-                        posterURL = "https://image.tmdb.org/t/p/w185${it.poster_path}"
+                        id = dto.id,
+                        title = dto.title,
+                        imageUrl = dto.backdropPath?.let { "$TMDB_IMAGE_BASE_W185$it" }
                     )
                 }
-                Result.success(movies)
+
+                return Result.success(models)
             },
-            onFailure = { error ->
-                Result.failure(error)
-            }
+            onFailure = { exception -> return Result.failure(exception) }
         )
     }
+
+    override suspend fun insertMyFavoriteMovie(movieModel: MovieModel): Unit {
+        local.insertMovie(movieModel)
+    }
+
+    override suspend fun getFavorites(): List<MovieModel> {
+        return local.getFavorites()
+    }
+
+
+
+
 }

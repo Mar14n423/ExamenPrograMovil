@@ -16,10 +16,13 @@ import com.example.examenprogramovil.features.login.domain.repository.ILoginRepo
 import com.example.examenprogramovil.features.login.domain.usercases.LoginUseCase
 import com.example.examenprogramovil.features.login.presentation.LogInViewModel
 import com.example.examenprogramovil.features.movies.data.api.MovieService
-import com.example.examenprogramovil.features.movies.data.datasource.MovieRemoteDataSource
-import com.example.examenprogramovil.features.movies.data.repository.MovieRepository
+import com.example.examenprogramovil.features.movies.data.datasource.MovieLocalDataSource
+import com.example.examenprogramovil.features.movies.data.datasource.MoviesRemoteDataSource
+import com.example.examenprogramovil.features.movies.data.repository.MoviesRepository
 import com.example.examenprogramovil.features.movies.domain.repository.IMovieRepository
-import com.example.examenprogramovil.features.movies.domain.usercases.GetMoviesUseCase
+import com.example.examenprogramovil.features.movies.domain.usercases.GetFavoritesUseCase
+import com.example.examenprogramovil.features.movies.domain.usercases.GetPopularMoviesUseCase
+import com.example.examenprogramovil.features.movies.domain.usercases.InserteMyFavoriteMovieUseCase
 import com.example.examenprogramovil.features.movies.presentation.MoviesViewModel
 import okhttp3.OkHttpClient
 import org.koin.androidx.viewmodel.dsl.viewModel
@@ -30,7 +33,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 val appModule = module {
-    // OkHttpClient
+
     single {
         OkHttpClient.Builder()
             .connectTimeout(30, TimeUnit.SECONDS)
@@ -39,7 +42,7 @@ val appModule = module {
             .build()
     }
 
-    // Retrofit
+
     single(named("github")) {
         Retrofit.Builder()
             .baseUrl("https://api.github.com/")
@@ -56,7 +59,7 @@ val appModule = module {
             .build()
     }
 
-    // Github
+
     single<GithubService> {
         get<Retrofit>(named("github")).create(GithubService::class.java)
     }
@@ -64,25 +67,28 @@ val appModule = module {
     single<IgithubRepository> { GithubRepository(get()) }
     factory { FindByNickNameUseCase(get()) }
     viewModel { GirhubViewModel(get()) }
-    // Profile
-    //single<IProfileRepository> { ProfileRepository() }
-    //factory { GetProfileUseCase(get()) }
-    //viewModel { ProfileViewModel(get()) }
-    // Login
+
+
     viewModel { LogInViewModel(get()) }
     factory { LoginUseCase(get()) }
     single<ILoginRepository> { LoginRepository() }
 
-    // Movies
     single<MovieService> {
         get<Retrofit>(named("movies")).create(MovieService::class.java)
     }
-    single { MovieRemoteDataSource(get(), get()) }
-    single<IMovieRepository> { MovieRepository(get()) }
-    factory { GetMoviesUseCase(get()) }
-    viewModel { MoviesViewModel(get()) }
 
-    // Dollar (Room database + repository + usecase + viewmodel)
+    single { MoviesRemoteDataSource(get()) }
+    single { get<AppDatabase>().movieDao() }
+    single { MovieLocalDataSource(get()) }
+    single<IMovieRepository> { MoviesRepository(get(), get()) }
+
+    factory { GetPopularMoviesUseCase(get()) }
+    factory { GetFavoritesUseCase(get()) }
+    factory { InserteMyFavoriteMovieUseCase(get()) }
+
+    viewModel { MoviesViewModel(get(), get(), get()) }
+
+
     single { AppDatabase.getDatabase(get()) }
     single { get<AppDatabase>().dollarDao() }
     single<IDollarRepository> { DollarRepository(get()) }

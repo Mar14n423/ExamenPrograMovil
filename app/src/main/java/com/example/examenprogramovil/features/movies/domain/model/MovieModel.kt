@@ -1,4 +1,8 @@
 package com.example.examenprogramovil.features.movies.domain.model
 
-class MovieModel(val title: String, val posterURL: String) {
-}
+data class MovieModel(
+    val id: Long,
+    val title: String?,
+    val imageUrl: String?,
+    val isFavorite: Boolean = false
+)

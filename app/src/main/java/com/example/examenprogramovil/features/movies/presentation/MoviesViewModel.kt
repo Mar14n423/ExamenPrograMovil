@@ -1,37 +1,83 @@
 package com.example.examenprogramovil.features.movies.presentation
-
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.examenprogramovil.features.movies.domain.model.MovieModel
-import com.example.examenprogramovil.features.movies.domain.usercases.GetMoviesUseCase
+import com.example.examenprogramovil.features.movies.domain.usercases.GetFavoritesUseCase
+import com.example.examenprogramovil.features.movies.domain.usercases.GetPopularMoviesUseCase
+import com.example.examenprogramovil.features.movies.domain.usercases.InserteMyFavoriteMovieUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class MoviesViewModel(val useCase: GetMoviesUseCase): ViewModel() {
-    sealed class MoviesUiState{
-        object Init : MoviesUiState()
-        object Loading : MoviesUiState()
-        class Error(val message: String) : MoviesUiState()
-        class Success(val movies: List<MovieModel>) : MoviesUiState()
+class MoviesViewModel(
+    private val getPopularMovies: GetPopularMoviesUseCase,
+    private val insertFavorite: InserteMyFavoriteMovieUseCase,
+    private val getLocalFavorites: GetFavoritesUseCase
+
+) : ViewModel() {
+
+    sealed class UiState {
+        object Init : UiState()
+        object Loading : UiState()
+        data class Success(val movies: List<MovieModel>) : UiState()
+        data class Error(val message: String) : UiState()
     }
 
-    private val _state = MutableStateFlow<MoviesUiState>(MoviesUiState.Init)
-    val state : StateFlow<MoviesUiState> = _state.asStateFlow()
+    private val _state = MutableStateFlow<UiState>(UiState.Init)
+    val state: StateFlow<UiState> = _state.asStateFlow()
 
-    fun fetchMovies() {
+    init {
+        load(1)
+    }
+
+    fun load(page: Int = 1) {
         viewModelScope.launch(Dispatchers.IO) {
-            _state.value = MoviesUiState.Loading
-            val result = useCase.invoke()
-
+            _state.value = UiState.Loading
+            val result = getPopularMovies(page)
             result.fold(
-                onSuccess = { list -> _state.value = MoviesUiState.Success(list) },
-                onFailure = { err -> _state.value = MoviesUiState.Error(err.message ?: "Error desconocido") }
+                onSuccess = { movies ->
+
+                    val localFavorites = getLocalFavorites()
+                    val favoriteIds = localFavorites.map { it.id }.toSet()
+
+                    val updatedMovies = movies.map { movie ->
+                        if (favoriteIds.contains(movie.id)) {
+                            movie.copy(isFavorite = true)
+                        } else {
+                            movie
+                        }
+                    }
+
+                    val sorted = updatedMovies.sortedByDescending { it.isFavorite }
+
+                    _state.value = UiState.Success(sorted)
+                },
+                onFailure = { exception ->
+                    _state.value = UiState.Error(exception.message ?: "Error desconocido")
+                }
             )
         }
     }
 
+
+
+    fun addToFavorites(movie: MovieModel) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val currentState = _state.value
+            if (currentState is UiState.Success) {
+
+                val favoriteMovie = movie.copy(isFavorite = true)
+                insertFavorite(favoriteMovie)
+
+                val updatedList = currentState.movies.map {
+                    if (it.id == movie.id) favoriteMovie else it
+                }.sortedByDescending { it.isFavorite }
+
+                _state.value = UiState.Success(updatedList)
+            }
+        }
+    }
 
 }

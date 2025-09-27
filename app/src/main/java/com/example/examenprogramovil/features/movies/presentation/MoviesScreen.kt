@@ -1,35 +1,21 @@
 package com.example.examenprogramovil.features.movies.presentation
 
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.itemsIndexed
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import org.koin.androidx.compose.koinViewModel
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MoviesScreen(
     modifier: Modifier = Modifier,
@@ -37,61 +23,79 @@ fun MoviesScreen(
 ) {
     val state by vm.state.collectAsState()
 
-    LaunchedEffect(Unit) {
-        vm.fetchMovies()
-    }
-
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        Text(
-            "Películas Populares",
-            fontSize = 24.sp,
-            modifier = Modifier.align(Alignment.CenterHorizontally)
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        when (val st = state) {
-            is MoviesViewModel.MoviesUiState.Init -> {
-                Text("Esperando...")
+    Box(modifier = modifier.fillMaxSize()) {
+        when (val s = state) {
+            is MoviesViewModel.UiState.Init -> {
+                Text("Init", modifier = Modifier.align(Alignment.Center))
             }
-            is MoviesViewModel.MoviesUiState.Loading -> {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+
+            is MoviesViewModel.UiState.Loading -> {
+                Text("Cargando...", modifier = Modifier.align(Alignment.Center))
             }
-            is MoviesViewModel.MoviesUiState.Error -> {
-                Text("Error: ${st.message}", color = Color.Red)
+
+            is MoviesViewModel.UiState.Error -> {
+                Text("Error: ${s.message}", modifier = Modifier.align(Alignment.Center))
             }
-            is MoviesViewModel.MoviesUiState.Success -> {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(3),
+
+            is MoviesViewModel.UiState.Success -> {
+                LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    contentPadding = PaddingValues(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    itemsIndexed(st.movies) { index, movie ->
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
+                    items(s.movies) { movie ->
+                        Card(
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            AsyncImage(
-                                model = movie.posterURL,
-                                contentDescription = movie.title,
-                                modifier = Modifier
-                                    .height(150.dp)
+                            Column(
+                                Modifier
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(8.dp)),
-                                contentScale = ContentScale.Crop
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                movie.title,
-                                fontSize = 14.sp,
-                                maxLines = 2
-                            )
+                                    .padding(12.dp)
+                            ) {
+                                AsyncImage(
+                                    model = movie.imageUrl,
+                                    contentDescription = movie.title,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(140.dp)
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = movie.title.toString(),
+                                        modifier = Modifier.weight(1f),
+                                        textAlign = TextAlign.Start
+                                    )
+
+                                    IconButton(
+                                        onClick = { vm.addToFavorites(movie) }
+                                    ) {
+                                        Icon(
+                                            imageVector = if (movie.isFavorite) {
+                                                Icons.Filled.Favorite
+                                            } else {
+                                                Icons.Filled.FavoriteBorder
+                                            },
+                                            contentDescription = if (movie.isFavorite) {
+                                                "Quitar de favoritos"
+                                            } else {
+                                                "Agregar a favoritos"
+                                            },
+                                            tint = if (movie.isFavorite) {
+                                                MaterialTheme.colorScheme.primary
+                                            } else {
+                                                MaterialTheme.colorScheme.onSurface
+                                            }
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
